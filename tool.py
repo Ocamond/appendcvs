@@ -1,9 +1,8 @@
 import sys, os
-from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidget, QListWidgetItem, QPushButton, QLabel, QFileDialog
+from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidget, QListWidgetItem, QPushButton, QLabel, QFileDialog, QWidget
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt, QUrl
 import pandas as pd
-
 
 class ListBoxWidget(QListWidget):
     def __init__(self, parent=None):
@@ -51,38 +50,24 @@ class AppDemo(QMainWindow):
 
         self.Concatbutton = QPushButton('Concat', self)
         self.Concatbutton.setGeometry(130,420,181,91)
-        self.Concatbutton.clicked.connect(lambda: self.concat())
+        self.Concatbutton.clicked.connect(lambda: self.concatandsave())
 
         self.Savebutton = QPushButton("Save ", self)
         self.Savebutton.setGeometry(470,420,181,91)
-        self.Savebutton.clicked.connect(lambda: self.openSaveDialog())
+        self.Savebutton.clicked.connect(lambda: self.saveas())
 
-    def concat(self):
+
+    def concatandsave(self):
         items = []
         combined_csv = {}
         for index in range(self.listbox_view.count()):
             items.append(self.listbox_view.item(index))
-            combined_csv = pd.concat([pd.read_csv(item.text(), sep=";", dtype="unicode") for item in items])
-        return combined_csv
-
-    def saveas(self):
-        csv = self.concat()
-        csv.to_csv( "combined_csv.csv", index=False, encoding='utf-8-sig')
-
-    def openSaveDialog(self):
-        widget= QtWidgets
+        combined_csv = pd.concat([pd.read_csv(item.text(), sep=";", dtype="unicode") for item in items])
+        widget= QWidget()
         option=QFileDialog.Options()
-        #first param is qwidget
-        #second param is Window Title
-        #third title is Default File Name
-        #fourth param is FileType
-        #fifth is options
+        file=QFileDialog.getSaveFileName(widget,"Save File as...","standard.csv","All Files (*)",options=option)
+        combined_csv.to_csv( file[0], index=False, encoding='utf-8-sig')
 
-        #for override native save dialog
-        option|=QFileDialog.DontUseNativeDialog
-
-        file=QFileDialog.getSaveFileName(widget,)
-        print(file[0])
 
 
 if __name__ == '__main__':
