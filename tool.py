@@ -56,12 +56,12 @@ class AppDemo(QMainWindow):
         self.Concatbutton.clicked.connect(lambda: self.concat())
 
         self.Consolibutton = QPushButton("Consolidate", self)
-        self.Consolibutton.setGeometry(440, 170, 111, 41)
+        self.Consolibutton.setGeometry(440, 270, 111, 41)
         self.Consolibutton.clicked.connect(lambda: self.consolidate())
 
-        self.Savebutton = QPushButton("Save as...", self)
-        self.Savebutton.setGeometry(440, 270, 111, 41)
-        self.Savebutton.clicked.connect(lambda: self.savefile())
+        # self.Savebutton = QPushButton("Save as...", self)
+        # self.Savebutton.setGeometry(440, 270, 111, 41)
+        # self.Savebutton.clicked.connect(lambda: self.savefile())
 
         # label
         self.Draglabel = QLabel(self)
@@ -84,19 +84,9 @@ class AppDemo(QMainWindow):
         self.Concatlabel.setFont(font)
         self.Concatlabel.setAlignment(Qt.AlignCenter)
 
-        self.Consolilabel = QLabel(self)
-        self.Consolilabel.setText("Consolidate")
-        self.Consolilabel.setObjectName("Consolilabel")
-        self.Consolilabel.setGeometry(QRect(400, 140, 191, 31))
-        font = QtGui.QFont()
-        font.setFamily("Arial")
-        font.setPointSize(14)
-        self.Consolilabel.setFont(font)
-        self.Consolilabel.setAlignment(Qt.AlignCenter)
-
         self.Savelabel = QLabel(self)
-        self.Savelabel.setText("Save as...")
-        self.Savelabel.setObjectName("Concatlabel")
+        self.Savelabel.setText("Consolidate")
+        self.Savelabel.setObjectName("Consolilabel")
         self.Savelabel.setGeometry(QRect(400, 240, 191, 31))
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -109,34 +99,35 @@ class AppDemo(QMainWindow):
         for index in range(self.listbox_view.count()):
             items.append(self.listbox_view.item(index))
         combined_csv = pd.concat([pd.read_csv(item.text(), sep=";", dtype="unicode") for item in items])
-        return combined_csv
+        widget = QWidget()
+        option = QFileDialog.Options()
+        file = QFileDialog.getSaveFileName(widget, "Save File as...", "standard.csv", "CSV files (*.csv)", options=option)
+        combined_csv.to_csv(file[0], index=True, encoding='utf-8-sig', sep=";")
 
     def consolidate(self):
-        csv = self.concat()
+        items = []
+        for index in range(self.listbox_view.count()):
+            items.append(self.listbox_view.item(index))
+        csv = pd.concat([pd.read_csv(item.text(), sep=";", dtype="unicode") for item in items])
         csv["SAM real consumption"] = csv["SAM real consumption"].str.replace(",", ".")
         csv["SAM real consumption"] = csv["SAM real consumption"].str.replace("€", "")
         csv["SAM real consumption"] = csv["SAM real consumption"].astype(float)
-        csv.drop(columns=['ARE inv rec', 'Bus Level', 'If/Show', 'ARE_',
-                          'Charging Information', 'Department (Kopie)',
-                          'Devices', 'Edition', 'Model',
-                          'Anzahl der Datensätze', 'OU', 'Position', 'SCD TimeStamp',
-                          'Software', 'Vendor', 'Version', 'Indication', 'qty', 'U User',
-                          'Software.', 'EditionNull', 'Vendor calc', '.Software. ',
-                          'Software_+_Module', 'SW_V_E', 'SW', 'RegisteredService',
-                          'SCD Department (copy)', 'Asset Type', 'Cntry', 'Software (Kopie)',
-                          'Calc Remark', 'D Msdn', 'Qty', "Unnamed: 8"], inplace=True)
         csv.set_index(["ARE", "Co Ce", "Department"], inplace=True)
-        consildated_csv = csv.groupby(by=["ARE", "Co Ce", "Department", "Service Group", "Fy Mm"]).sum()
+        consildated_csv = csv.groupby(by=["ARE", "Co Ce", "Department", "Service Group", "Fy Mm"])[
+            ["SAM real consumption"]].sum()
         consildated_csv["SAM real consumption"] = consildated_csv["SAM real consumption"].astype(str)
         consildated_csv["SAM real consumption"] = consildated_csv["SAM real consumption"].str.replace(".", ",")
-        return consildated_csv
-
-    def savefile(self):
-        csv = self.consolidate()
         widget = QWidget()
         option = QFileDialog.Options()
         file = QFileDialog.getSaveFileName(widget, "Save File as...", "standard.csv", ".csv", options=option)
-        csv.to_csv(file[0], index=True, encoding='utf-8-sig', sep=";")
+        consildated_csv.to_csv(file[0], index=True, encoding='utf-8-sig', sep=";")
+
+    # def savefile(self):
+    #    csv = self.consolidate()
+    #    widget = QWidget()
+    #    option = QFileDialog.Options()
+    #    file = QFileDialog.getSaveFileName(widget, "Save File as...", "standard.csv", ".csv", options=option)
+    #    csv.to_csv(file[0], index=True, encoding='utf-8-sig', sep=";")
 
 
 if __name__ == '__main__':
