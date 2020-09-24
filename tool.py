@@ -4,6 +4,9 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidget, QPushButton,
 from PyQt5.QtCore import Qt, QRect
 from PyQt5 import QtGui
 import pandas as pd
+import time
+from ARE import ARE_list
+import numpy as np
 
 
 class ListBoxWidget(QListWidget):
@@ -99,10 +102,14 @@ class AppDemo(QMainWindow):
         for index in range(self.listbox_view.count()):
             items.append(self.listbox_view.item(index))
         combined_csv = pd.concat([pd.read_csv(item.text(), sep=";", dtype="unicode") for item in items])
+        combined_csv["Timestamp"] = pd.Timestamp('today').strftime("%Y-%m-%d %H:%M:%S")
+        combined_csv["ARE"] = combined_csv["ARE"].str.lower()
+        merged_csv = combined_csv.merge(ARE_list, on="ARE", how="inner")
         widget = QWidget()
         option = QFileDialog.Options()
-        file = QFileDialog.getSaveFileName(widget, "Save File as...", "standard.csv", "CSV files (*.csv)", options=option)
-        combined_csv.to_csv(file[0], index=True, encoding='utf-8-sig', sep=";")
+        file = QFileDialog.getSaveFileName(widget, "Save File as...", "concatenated.csv", "CSV files (*.csv)",
+                                           options=option)
+        merged_csv.to_csv(file[0], index=True, encoding='utf-8-sig', sep=";")
 
     def consolidate(self):
         items = []
@@ -112,15 +119,19 @@ class AppDemo(QMainWindow):
         csv["SAM real consumption"] = csv["SAM real consumption"].str.replace(",", ".")
         csv["SAM real consumption"] = csv["SAM real consumption"].str.replace("€", "")
         csv["SAM real consumption"] = csv["SAM real consumption"].astype(float)
-        csv.set_index(["ARE", "Co Ce", "Department"], inplace=True)
-        consildated_csv = csv.groupby(by=["ARE", "Co Ce", "Department", "Service Group", "Fy Mm"])[
+        consildated_csv = csv.groupby(by=["ARE", "Co Ce", "Department", "Service Group", "Software", "Fy Mm"])[
             ["SAM real consumption"]].sum()
         consildated_csv["SAM real consumption"] = consildated_csv["SAM real consumption"].astype(str)
         consildated_csv["SAM real consumption"] = consildated_csv["SAM real consumption"].str.replace(".", ",")
+        consildated_csv["Timestamp"] = pd.Timestamp('today').strftime("%Y-%m-%d %H:%M:%S")
+        consildated_csv.reset_index(inplace=True)
+        consildated_csv["ARE"] = consildated_csv["ARE"].str.lower()
+        merged_csv = consildated_csv.merge(ARE_list, on="ARE", how="inner")
         widget = QWidget()
         option = QFileDialog.Options()
-        file = QFileDialog.getSaveFileName(widget, "Save File as...", "standard.csv", ".csv", options=option)
-        consildated_csv.to_csv(file[0], index=True, encoding='utf-8-sig', sep=";")
+        file = QFileDialog.getSaveFileName(widget, "Save File as...", "consolidated.csv", "CSV files (*.csv)",
+                                           options=option)
+        merged_csv.to_csv(file[0], index=False, encoding='utf-8-sig', sep=";")
 
     # def savefile(self):
     #    csv = self.consolidate()
