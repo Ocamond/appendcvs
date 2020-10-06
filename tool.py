@@ -50,17 +50,27 @@ class AppDemo(QMainWindow):
         super().__init__()
         self.resize(613, 387)
 
+        # Title Name
+        self.setWindowTitle("Python tool")
+        self.setWindowIcon(QtGui.QIcon("files/Python.png"))
+        # Status bar
+        self.statusBar().showMessage("Status: Sleeping")
+        self.statusBar().setStyleSheet("background-color: pink")
         # list
         self.listbox_view = ListBoxWidget(self)
 
         # button
         self.Concatbutton = QPushButton('Concatenation', self)
-        self.Concatbutton.setGeometry(440, 70, 111, 41)
+        self.Concatbutton.setGeometry(440, 90, 111, 41)
         self.Concatbutton.clicked.connect(lambda: self.concat())
 
         self.Consolibutton = QPushButton("Consolidate", self)
-        self.Consolibutton.setGeometry(440, 270, 111, 41)
+        self.Consolibutton.setGeometry(440, 250, 111, 41)
         self.Consolibutton.clicked.connect(lambda: self.consolidate())
+
+        self.deletebutton = QPushButton("Clear list", self)
+        self.deletebutton.setGeometry(130, 315, 150, 25)
+        self.deletebutton.clicked.connect(lambda: self.removeitem())
 
         # self.Savebutton = QPushButton("Save as...", self)
         # self.Savebutton.setGeometry(440, 270, 111, 41)
@@ -70,7 +80,7 @@ class AppDemo(QMainWindow):
         self.Draglabel = QLabel(self)
         self.Draglabel.setObjectName("Draglabel")
         self.Draglabel.setText("Drag & Drop field")
-        self.Draglabel.setGeometry(QRect(100, 20, 181, 31))
+        self.Draglabel.setGeometry(QRect(110, 20, 181, 31))
         font = QtGui.QFont()
         font.setFamily("Arial")
         font.setPointSize(14)
@@ -80,7 +90,7 @@ class AppDemo(QMainWindow):
         self.Concatlabel = QLabel(self)
         self.Concatlabel.setText("Concat files")
         self.Concatlabel.setObjectName("Concatlabel")
-        self.Concatlabel.setGeometry(QRect(400, 40, 191, 31))
+        self.Concatlabel.setGeometry(QRect(400, 60, 191, 31))
         font = QtGui.QFont()
         font.setFamily("Arial")
         font.setPointSize(14)
@@ -90,55 +100,64 @@ class AppDemo(QMainWindow):
         self.Savelabel = QLabel(self)
         self.Savelabel.setText("Consolidate")
         self.Savelabel.setObjectName("Consolilabel")
-        self.Savelabel.setGeometry(QRect(400, 240, 191, 31))
+        self.Savelabel.setGeometry(QRect(400, 220, 191, 31))
         font = QtGui.QFont()
         font.setFamily("Arial")
         font.setPointSize(14)
         self.Savelabel.setFont(font)
         self.Savelabel.setAlignment(Qt.AlignCenter)
 
+    def removeitem(self):
+        self.listbox_view.clear()
+
     def concat(self):
         items = []
         for index in range(self.listbox_view.count()):
             items.append(self.listbox_view.item(index))
-        combined_csv = pd.concat([pd.read_csv(item.text(), sep=";", dtype="unicode") for item in items])
-        combined_csv["Timestamp"] = pd.Timestamp('today').strftime("%Y-%m-%d %H:%M:%S")
-        combined_csv["ARE"] = combined_csv["ARE"].str.lower()
-        merged_csv = combined_csv.merge(ARE_list, on="ARE", how="inner")
-        widget = QWidget()
-        option = QFileDialog.Options()
-        file = QFileDialog.getSaveFileName(widget, "Save File as...", "concatenated.csv", "CSV files (*.csv)",
-                                           options=option)
-        merged_csv.to_csv(file[0], index=True, encoding='utf-8-sig', sep=";")
+        try:
+            combined_csv = pd.concat([pd.read_csv(item.text(), sep=";", dtype="unicode") for item in items])
+            combined_csv["Timestamp"] = pd.Timestamp('today').strftime("%Y-%m-%d %H:%M:%S")
+            combined_csv["ARE"] = combined_csv["ARE"].str.lower()
+            merged_csv = combined_csv.merge(ARE_list, on="ARE", how="inner")
+            widget = QWidget()
+            option = QFileDialog.Options()
+            file = QFileDialog.getSaveFileName(widget, "Save File as...", "concatenated.csv", "CSV files (*.csv)",
+                                               options=option)
+            merged_csv.to_csv(file[0], index=True, encoding='utf-8-sig', sep=";")
+            self.statusBar().showMessage("Status: Finished")
+            self.statusBar().setStyleSheet("background-color: green")
+        except ValueError:
+            self.statusBar().showMessage("Status: Please only use csv files to concatinate")
+            self.statusBar().setStyleSheet("background-color: pink")
 
     def consolidate(self):
         items = []
         for index in range(self.listbox_view.count()):
             items.append(self.listbox_view.item(index))
-        csv = pd.concat([pd.read_csv(item.text(), sep=";", dtype="unicode") for item in items])
-        csv["SAM real consumption"] = csv["SAM real consumption"].str.replace(",", ".")
-        csv["SAM real consumption"] = csv["SAM real consumption"].str.replace("€", "")
-        csv["SAM real consumption"] = csv["SAM real consumption"].astype(float)
-        consildated_csv = csv.groupby(by=["ARE", "Co Ce", "Department", "Service Group", "Software", "Fy Mm"])[
-            ["SAM real consumption"]].sum()
-        consildated_csv["SAM real consumption"] = consildated_csv["SAM real consumption"].astype(str)
-        consildated_csv["SAM real consumption"] = consildated_csv["SAM real consumption"].str.replace(".", ",")
-        consildated_csv["Timestamp"] = pd.Timestamp('today').strftime("%Y-%m-%d %H:%M:%S")
-        consildated_csv.reset_index(inplace=True)
-        consildated_csv["ARE"] = consildated_csv["ARE"].str.lower()
-        merged_csv = consildated_csv.merge(ARE_list, on="ARE", how="inner")
-        widget = QWidget()
-        option = QFileDialog.Options()
-        file = QFileDialog.getSaveFileName(widget, "Save File as...", "consolidated.csv", "CSV files (*.csv)",
-                                           options=option)
-        merged_csv.to_csv(file[0], index=False, encoding='utf-8-sig', sep=";")
-
-    # def savefile(self):
-    #    csv = self.consolidate()
-    #    widget = QWidget()
-    #    option = QFileDialog.Options()
-    #    file = QFileDialog.getSaveFileName(widget, "Save File as...", "standard.csv", ".csv", options=option)
-    #    csv.to_csv(file[0], index=True, encoding='utf-8-sig', sep=";")
+        try:
+            csv = pd.concat([pd.read_csv(item.text(), sep=";", dtype="unicode") for item in items])
+            csv["SAM real consumption"] = csv["SAM real consumption"].str.replace(",", ".")
+            csv["SAM real consumption"] = csv["SAM real consumption"].str.replace("€", "")
+            csv["SAM real consumption"] = csv["SAM real consumption"].astype(float)
+            consildated_csv = csv.groupby(by=["ARE", "Co Ce", "Department", "Service Group", "Software", "Fy Mm"])[
+                ["SAM real consumption"]].sum()
+            consildated_csv["SAM real consumption"] = consildated_csv["SAM real consumption"].astype(str)
+            consildated_csv["SAM real consumption"] = consildated_csv["SAM real consumption"].str.replace(".", ",")
+            # setting timestamp
+            consildated_csv["Timestamp"] = pd.Timestamp('today').strftime("%Y-%m-%d %H:%M:%S")
+            consildated_csv.reset_index(inplace=True)
+            consildated_csv["ARE"] = consildated_csv["ARE"].str.lower()
+            merged_csv = consildated_csv.merge(ARE_list, on="ARE", how="inner")
+            widget = QWidget()
+            option = QFileDialog.Options()
+            file = QFileDialog.getSaveFileName(widget, "Save File as...", "consolidated.csv", "CSV files (*.csv)",
+                                               options=option)
+            merged_csv.to_csv(file[0], index=False, encoding='utf-8-sig', sep=";")
+            self.statusBar().showMessage("Status: Finished")
+            self.statusBar().setStyleSheet("background-color: green")
+        except ValueError:
+            self.statusBar().showMessage("Status: Please add csv files to consolidate")
+            self.statusBar().setStyleSheet("background-color: pink")
 
 
 if __name__ == '__main__':
